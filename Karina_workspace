@@ -1,0 +1,27 @@
+import arcpy
+print(arcpy.GetInstallInfo())
+import os
+import geopandas as gpd
+import matplotlib.pyplot as plt
+
+shapefile_path1 = r'H:\Downloads\al022024_esurge10_2024070518'
+shapefile_path2 = r'H:\Downloads\al092024_esurge10_2024092312'
+gdf1 = gpd.read_file(shapefile_path1)
+gdf2 = gpd.read_file(shapefile_path2)
+
+print(gdf1.head())
+print(gdf2.head())
+
+values1 = gdf1['SURGE10']
+values2 = gdf2['SURGE10']
+
+plt.figure(figsize=(12,8))
+plt.plot(values1, label='Hurricane Beryl')
+plt.plot(values2, label='Hurricane Helene')
+plt.title('Line Graph of Storm Surge Data')
+plt.xlabel('POINTID')
+plt.ylabel('SURGE10 Values')
+plt.legend()
+plt.show()
+
+
