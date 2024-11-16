@@ -1,0 +1,56 @@
+import arcpy
+print(arcpy.GetInstallInfo())
+import os
+import geopandas as gpd
+import matplotlib.pyplot as plt
+
+shapefile_path1 = r'H:\Downloads\al022024_esurge10_2024070518'
+shapefile_path2 = r'H:\Downloads\al092024_esurge10_2024092312'
+gdf1 = gpd.read_file(shapefile_path1)
+gdf2 = gpd.read_file(shapefile_path2)
+
+print(gdf1.head())
+print(gdf2.head())
+
+values1 = gdf1['SURGE10']
+values2 = gdf2['SURGE10']
+
+plt.figure(figsize=(12,8))
+plt.plot(values1, label='Hurricane Beryl')
+plt.plot(values2, label='Hurricane Helene')
+plt.title('Line Graph of Storm Surge Data')
+plt.xlabel('POINTID')
+plt.ylabel('SURGE10 Values')
+plt.legend()
+plt.show()
+
+gdb_directory = r'\\storage\homes\S-1-5-21-1167378736-2199707310-2242153877-914053\ArcGIS\Projects\GEOG392_group_project\GEOG392_group_project.gdb'
+gdb_name = 'GEOG392_group_project.gdb'
+gdb_path = os.path.join(gdb_directory, gdb_name)
+shapefile_path1 = r'H:\Downloads\al022024_esurge10_2024070518'
+shapefile_path2 = r'H:\Downloads\al092024_esurge10_2024092312'
+
+arcpy.management.CreateFileGDB(gdb_directory, gdb_name)
+arcpy.conversion.FeatureClassToGeodatabase([shapefile_path1, shapefile_path2], gdb_path)
+
+
+aprx_path = r'\\storage\homes\S-1-5-21-1167378736-2199707310-2242153877-914053\ArcGIS\Projects\GEOG392_group_project\GEOG392_group_project.aprx'
+aprx = arcpy.mp.ArcGISProject(aprx_path)
+m = aprx.listMaps("GEOG392_group_project")[0]
+layer1 = m.listLayers("Hurricane Beryl")[0]
+layer2 = m.listLayers("Hurricane Helene")[0]
+
+sym = layer1.symbology
+sym.updateRenderer("UniqueValueRenderer")
+sym.renderer.fields = ["SURGE_10"]
+colorRamp = aprx.listColorRamps("Random Color Scheme")[0]
+sym.renderer.colorRamp = colorRamp
+
+sym = layer2.symbology
+sym.updateRenderer("UniqueValueRenderer")
+sym.renderer.fields = ["SURGE_10"]
+colorRamp = aprx.listColorRamps("Dark Glazes")
+sym.renderer.colorRamp = colorRamp
+
+aprx.save()
+
