@@ -14,6 +14,7 @@ import matplotlib.dates as mdates
 import matplotlib.animation as animation
 from PIL import Image
 import imageio.v2 as imageio
+from matplotlib.patches import Rectangle
 
 hurricane_lists = ["katrina", "rita", "harvey", "irma", "michael", "laura","ida"]
 
@@ -80,6 +81,22 @@ hurricane_data ={
 }
 
 def create_directories(name):
+    """
+    The `create_directories` function dynamically creates directories for a 
+    hurricane and stores the paths in a dictionary.
+    
+    :param name: `name` parameter as input, which is the name
+    of a hurricane. The function then creates directories for various purposes related to that
+    hurricane, such as storing data, maps, graphs, text files, and animations. 
+    :return: a dictionary containing paths to various folders created for a hurricane. 
+    The keys in the dictionary are the name of the hurricane, and the
+    values are dictionaries containing paths to the following folders:
+    - 'data_folder': Path to the data folder for the hurricane
+    - 'maps_folder': Path to the maps folder for the hurricane
+    - 'graphs_folder': Path to graphs folder for the hurricane
+    - 'txt_folder': Path to txt folder for the hurricane containing the download links to the .nc files
+    - 'animation_folder': Path to animation folder for the hurricane
+    """
     folders = {}
     # Create folders dynamically for each hurricane
     # Parent folders
@@ -115,6 +132,14 @@ def create_directories(name):
     return folders
 
 def folder_exists_and_not_empty(folder_path):
+    """
+    The function `folder_exists_and_not_empty` checks if a folder exists and is not empty.
+    
+    :param folder_path: The `folder_path` parameter is a string that represents the path to a folder on
+    the file system
+    :return: returns `True` if the folder at the specified path exists.
+    `folder_path` exists and is not empty. Otherwise, it returns `False`.
+    """
     # Check if the folder exists
     if os.path.exists(folder_path):
         # Check if the folder is not empty
@@ -123,6 +148,15 @@ def folder_exists_and_not_empty(folder_path):
     return False
 
 def download_links(name, data_folder_full_path):
+    """
+    The `download_links` function reads URLs from a text file, downloads corresponding NetCDF files, and
+    saves them in a specified directory.
+    
+    :param name: The `name` parameter in the `download_links` function is used to specify the name of
+    the .txt file that contains the list of URLs to download NetCDF files from
+    :param data_folder_full_path: The `data_folder_full_path` parameter should be the full path to the
+    directory where you want to save the downloaded files.
+    """
     # Update this with the path to your .txt file
     txt_path = os.path.join(txt_dir, f"{name}.txt")
     with open(txt_path, "r") as f:
@@ -147,6 +181,27 @@ def download_links(name, data_folder_full_path):
     print(f"{name}.txt urls downloaded")
 
 def create_maps(maps_folder_full_path, data_folder_full_path, file_name,name,extent,cities):
+    """
+    The function `create_maps` generates a rainfall map 
+    visualization for a specific dataset, focusing on a specified geographical 
+    extent and marking cities on the map.
+    
+    :param maps_folder_full_path: The `maps_folder_full_path` parameter is the full path to the
+    directory where you want to save the generated rainfall maps.
+    :param data_folder_full_path: The `data_folder_full_path` parameter
+    represents the full path to the folder where the data files are located. 
+    :param file_name: The `file_name` parameter represents the name of the
+    file being processed. It is used to extract the date and time information from the file name to be
+    displayed on the generated map.
+    :param name: The `name` parameter represents the name of the hurricane
+    for which the rainfall map is being generated.
+    :param extent: The `extent` parameter is used to specify the
+    geographical extent of the map to be created. It defines the bounding box coordinates that determine
+    the area to be displayed on the map.
+    :param cities: The `cities` parameter is a dictionary where
+    the keys are city names and the values are tuples containing latitude and longitude coordinates of
+    those cities.
+    """
     # Only process files with the .nc4 or .nc extension
     if file_name.endswith(".nc4") or file_name.endswith(".nc"):
         # Extract the date from the file name (assuming the format like '20050823')
@@ -188,10 +243,11 @@ def create_maps(maps_folder_full_path, data_folder_full_path, file_name,name,ext
             lat,
             rainfall,
             transform=ccrs.PlateCarree(),
-            cmap="viridis",
+            cmap="plasma",  # Try 'plasma', 'cividis', or stick to 'viridis'
             shading="auto",
             norm=LogNorm(vmin=min_rainfall, vmax=max_rainfall),  # Apply normalization
         )
+
 
         # Add contour lines for better visibility of rainfall levels
         contour = ax.contour(
@@ -224,15 +280,27 @@ def create_maps(maps_folder_full_path, data_folder_full_path, file_name,name,ext
             # Offset the text to avoid covering the marker
             ax.text(lon + 0.2, lat + 0.2, city, fontsize=12, backgroundcolor="white", transform=ccrs.PlateCarree())
 
-        # Add a colorbar with more granularity
-        plt.colorbar(
+        # Add a more detailed colorbar with the absolute min/max rainfall values
+        cbar = plt.colorbar(
             img,
             ax=ax,
-            label="Rainfall (kg/m^2)",
+            label="Rainfall (kg/m^2, LogNorm)",
             ticks=np.linspace(min_rainfall, max_rainfall, 10),
         )
 
-        plt.title(f"Rainfall for Hurricane {name.capitalize()} {formatted_datetime}")
+        # Add text to indicate the absolute min and max rainfall in the dataset
+        absolute_min = np.nanmin(rainfall)  # Absolute minimum across all points
+        absolute_max = np.nanmax(rainfall)  # Absolute maximum across all points
+
+        # Update the colorbar to include the absolute values
+        cbar.ax.text(1.1, 0, f'Abs Min: {absolute_min:.2f}', va='center', ha='left', transform=cbar.ax.transAxes, fontsize=10)
+        cbar.ax.text(1.1, 1, f'Abs Max: {absolute_max:.2f}', va='center', ha='left', transform=cbar.ax.transAxes, fontsize=10)
+
+        cbar.set_label('Rainfall (kg/m², LogNorm)')
+        # Label the color bar with additional details
+        cbar.ax.set_ylabel("Rainfall (kg/m^2, Log Scale)", rotation=-90, va="bottom")
+
+        plt.title(f"Rainfall for Hurricane {name.capitalize()} at {formatted_datetime}")
 
         # Save the plot to the output directory with a unique name
         output_file_path = os.path.join(maps_folder_full_path, 
@@ -246,6 +314,26 @@ def create_maps(maps_folder_full_path, data_folder_full_path, file_name,name,ext
         dataset.close()
 
 def gather_precipitation_data(cities, data_folder, name):
+    """
+    The function `gather_precipitation_data` processes precipitation data from files in a specified
+    folder for given cities and updates the hurricane data dictionary with daily and total precipitation
+    values.
+    
+    :param cities: The `cities` parameter is a dictionary
+    where the keys are city names and the values are tuples containing the latitude and longitude
+    coordinates of each city. This dictionary is used to extract precipitation data for each city.
+    :param data_folder: The `data_folder` parameter is the
+    path to the folder where the precipitation data files are stored. This function reads precipitation
+    data from files in this folder to gather information for each city specified in the `cities`
+    dictionary.
+    :param name: The `name` parameter is a string that
+    represents the name of the hurricane event for which you are gathering precipitation data
+    :return: The function `gather_precipitation_data` returns two main values: 
+    1. `hurricane_data`: This is a dictionary containing precipitation data for each city. It includes
+    keys for daily precipitation and total precipitation for each city.
+    2. `days`: This is a list containing datetime objects representing the days for which precipitation
+    data was gathered.
+    """
     # Add new keys to store precipitation data
     hurricane_data[name]["daily_precipitation"] = {city: [] for city in cities.keys()}
     hurricane_data[name]["total_precipitation"] = {city: 0 for city in cities.keys()}
@@ -288,68 +376,243 @@ def gather_precipitation_data(cities, data_folder, name):
     return hurricane_data, days
         
 def plot_time_series_for_cities(daily_precipitation, days, name, output_folder):
-    fig, ax = plt.subplots(figsize=(10, 6))
-    # Different line styles for each city
-    line_styles = ['-', '--', '-.', ':', '-']  # Solid, dashed, dash-dot, dotted
-    # Thicker line widths for clarity
-    line_widths = [2, 2.5, 3, 2, 2.5]  # Adjust thickness
-    # Color palette
-    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']  # Distinct colors
-
-    for i, (city, precip_data) in enumerate(daily_precipitation.items()):
-        # print(f"City: {city}, Precipitation data: {precip_data}")
-        # Use the index `i` to access the corresponding styles, colors, and line widths
-        ax.plot(days, precip_data, label=city, linestyle=line_styles[i], 
-                color=colors[i], linewidth=line_widths[i])
-
+    """
+    The function `plot_time_series_for_cities` generates a time series plot of daily precipitation data
+    for multiple cities during a hurricane event and saves the plot as an image file.
     
-    ax.set_xlabel('Day')
-    ax.set_ylabel('Total Precipitation (kg/m^2)')
-    ax.set_title(f'Total Daily Precipitation for Hurricane {name}')
-    ax.legend()
-    # Format the x-axis to show fewer date ticks
+    :param daily_precipitation: The `daily_precipitation` parameter is a dictionary where the keys are
+    city names and the values are lists of daily precipitation data for each city. Each list represents
+    the daily precipitation values for that city over a period of time.
+    :param days: The `days` parameter represents the
+    x-axis values for the time series plot. It could be a list of dates or numerical values representing
+    the days for which the daily precipitation data is available for different cities.
+    :param name: The `name` parameter represents the name
+    of the hurricane for which the total daily precipitation data is being plotted.
+    :param output_folder: The `output_folder` parameter
+    refers to the directory path where the generated plot will be saved as a PNG file.
+    """
+    # Convert kg/m² to inches (1 kg/m² = 0.0393701 inches)
+    conversion_factor = 0.0393701
+    daily_precipitation_inches = {
+        city: [val * conversion_factor for val in values]
+        for city, values in daily_precipitation.items()
+    }
+
+    # Find the maximum precipitation value across all cities
+    max_precip = max(max(values) for values in daily_precipitation_inches.values())
+    
+    # Calculate y-axis limits with padding
+    y_max = max_precip * 1.15  # Add 15% padding for annotations
+    
+    # Round up to the next 0.5 increment for a cleaner look
+    y_max = np.ceil(y_max * 2) / 2
+
+    # Create figure
+    fig, ax = plt.subplots(figsize=(12, 7))
+
+    # Define precipitation thresholds (in inches)
+    thresholds = {
+        'Light': (0, 0.1),
+        'Moderate': (0.1, 0.3),
+        'Heavy': (0.3, 0.5),
+        'Very Heavy': (0.5, 2.0)
+    }
+
+    # Add colored bands for precipitation thresholds
+    colors = ['#63C5DA', '#0492C2', '#2832C2', '#0A1172']
+    for (label, (lower, upper)), color in zip(thresholds.items(), colors):
+        # If threshold upper bound exceeds y_max, cap it
+        upper_bound = min(upper, y_max)
+        ax.add_patch(Rectangle((min(days), lower),
+                            max(days) - min(days),
+                            upper_bound - lower,
+                            facecolor=color,
+                            alpha=0.3,
+                            label=f'{label} ({lower}-{upper} in)'))
+
+    # Plot lines for each city
+    line_styles = ['-', '--', '-.', ':', '-']
+    line_widths = [2.5, 2.5, 2.5, 2.5, 2.5]
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
+
+    for i, (city, precip_data) in enumerate(daily_precipitation_inches.items()):
+        line = ax.plot(days, precip_data,
+                    label=city,
+                    linestyle=line_styles[i],
+                    color=colors[i],
+                    linewidth=line_widths[i])
+
+        # Find and annotate peak precipitation
+        peak_idx = np.argmax(precip_data)
+        peak_value = precip_data[peak_idx]
+        peak_date = days[peak_idx]
+
+        # Add annotation with arrow
+        ax.annotate(f'{peak_value:.2f} in',
+                xy=(peak_date, peak_value),
+                xytext=(10, 10),
+                textcoords='offset points',
+                ha='left',
+                va='bottom',
+                bbox=dict(boxstyle='round,pad=0.5',
+                        fc='white',
+                        alpha=0.7),
+                arrowprops=dict(arrowstyle='->',
+                                connectionstyle='arc3,rad=0',
+                                color=colors[i]))
+
+    # Set y-axis limits and ticks
+    ax.set_ylim(0, y_max)
+    
+    # Calculate number of y-axis ticks based on max value
+    if y_max <= 1:
+        y_ticks = np.arange(0, y_max + 0.1, 0.1)
+    elif y_max <= 2:
+        y_ticks = np.arange(0, y_max + 0.2, 0.2)
+    else:
+        y_ticks = np.arange(0, y_max + 0.5, 0.5)
+    
+    ax.set_yticks(y_ticks)
+    ax.yaxis.set_major_formatter(plt.FormatStrFormatter('%.2f'))
+
+    # Customize axes
+    ax.set_xlabel('Date', fontsize=12)
+    ax.set_ylabel('Precipitation (inches)', fontsize=12)
+    ax.set_title(f'Daily Precipitation for Hurricane {name}',
+                fontsize=14,
+                pad=20)
+
+    # Improve legend
+    handles, labels = ax.get_legend_handles_labels()
+    threshold_handles = handles[:len(thresholds)]
+    city_handles = handles[len(thresholds):]
+    threshold_labels = labels[:len(thresholds)]
+    city_labels = labels[len(thresholds):]
+    
+    ax.legend(threshold_handles + city_handles,
+            threshold_labels + city_labels,
+            loc='center left',
+            bbox_to_anchor=(1.05, 0.5),
+            fontsize=10)
+
+    # Format x-axis
     ax.xaxis.set_major_locator(mdates.AutoDateLocator())
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+    plt.xticks(rotation=45, ha='right')
 
-    plt.xticks(rotation=45, ha='right')  # Rotate for better readability
+    # Add grid for better readability
+    ax.grid(True, linestyle='--', alpha=0.7)
+
+    # Adjust layout to prevent label cutoff
     plt.tight_layout()
-    
-    # Save the plot to the output directory with a unique name
-    output_file_path = os.path.join(output_folder, 
-                                    f"Total Daily Precipitation for Hurricane {name}.png")
-    plt.savefig(output_file_path, dpi=300)  # Save with high resolution
-    # plt.show()
-    
-    # Close the figure to ensure no overlap with the next iteration
+
+    # Save the plot
+    output_file_path = os.path.join(
+        output_folder,
+        f"Daily_Precipitation_Hurricane_{name}_inches.png"
+    )
+    plt.savefig(output_file_path,
+                dpi=300,
+                bbox_inches='tight')
     plt.close(fig)
 
 def plot_total_precipitation(accumulated_precip, name, output_folder):
-    # Access the total precipitation directly from the dictionary
+    """
+    The function `plot_total_precipitation` generates a bar plot showing the total accumulated
+    precipitation for each city affected by a hurricane and saves the plot as a PNG file in the
+    specified output folder.
+    
+    :param accumulated_precip: It seems like you were about to provide a description of the
+    `accumulated_precip` parameter in the `plot_total_precipitation` function. Could you please continue
+    with the description so that I can assist you further?
+    :param name: The `name` parameter in the `plot_total_precipitation` function is used to specify the
+    name of the hurricane for which you want to plot the total accumulated precipitation data. This name
+    is used to access the corresponding data from the `hurricane_data` dictionary and generate a plot
+    showing the
+    :param output_folder: The `output_folder` parameter in the `plot_total_precipitation` function is a
+    string that represents the directory path where the output plot will be saved. This parameter
+    specifies the location where the generated plot image file will be stored after the function is
+    executed. It should be a valid path on the
+    """
+    # Access the total precipitation
     total_precipitation = hurricane_data[name]["total_precipitation"]
-    # Extract cities and their total precipitation
-    cities = list(total_precipitation.keys())
-    total_precip_values = list(total_precipitation.values())
-
-    # Plotting the total accumulated precipitation for each city
-    fig, ax = plt.subplots()
-    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']  # Different colors for each city
-    ax.bar(cities, total_precip_values, color=colors)
-    ax.set_xlabel('City')
-    ax.set_ylabel('Total Accumulated Precipitation (kg/m^2)')
-    ax.set_title(f'Total Accumulated Precipitation for Hurricane {name}')
-
-    plt.xticks(rotation=45)
+    
+    # Convert kg/m² to inches
+    conversion_factor = 0.0393701
+    total_precipitation_inches = {
+        city: value * conversion_factor for city, value in total_precipitation.items()
+    }
+    
+    # Extract cities and their total precipitation in inches
+    cities = list(total_precipitation_inches.keys())
+    total_precip_values = list(total_precipitation_inches.values())
+    
+    # Create figure with larger size for better readability
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    # Define colors for each city
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
+    
+    # Create bars
+    bars = ax.bar(cities, total_precip_values, color=colors)
+    
+    # Add value labels on top of each bar
+    for bar in bars:
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2., height,
+                f'{height:.2f}"',
+                ha='center', va='bottom')
+    
+    # Customize axes
+    ax.set_xlabel('City', fontsize=12)
+    ax.set_ylabel('Total Accumulated Precipitation (inches)', fontsize=12)
+    ax.set_title(f'Total Accumulated Precipitation for Hurricane {name}',
+                fontsize=14, pad=20)
+    
+    # Add grid for better readability (only horizontal lines)
+    ax.grid(axis='y', linestyle='--', alpha=0.7)
+    
+    # Rotate x-axis labels for better readability
+    plt.xticks(rotation=45, ha='right')
+    
+    # Calculate y-axis limit with some padding for labels
+    y_max = max(total_precip_values)
+    ax.set_ylim(0, y_max * 1.1)  # Add 10% padding
+    
+    # Format y-axis ticks to show 2 decimal places
+    ax.yaxis.set_major_formatter(plt.FormatStrFormatter('%.2f'))
+    
+    # Adjust layout to prevent label cutoff
     plt.tight_layout()
     
-    # Save the plot to the output directory
-    output_file_path = os.path.join(output_folder, f"Total_Daily_Precipitation_Hurricane_{name}.png")
-    plt.savefig(output_file_path, dpi=300)  # Save with high resolution
-    # plt.show()
-
-    # Close the figure to ensure no overlap with the next iteration
+    # Save the plot
+    output_file_path = os.path.join(
+        output_folder,
+        f"Total_Accumulated_Precipitation_Hurricane_{name}_inches.png"
+    )
+    plt.savefig(output_file_path, dpi=300, bbox_inches='tight')
     plt.close(fig)
 
 def create_videos_from_maps(maps_folder, animation_folder, name, fps=2):
+    """
+    The function `create_videos_from_maps` generates a video animation from a series of map images and
+    saves it as an mp4 file.
+    
+    :param maps_folder: The `maps_folder` parameter in the `create_videos_from_maps` function is the
+    directory path where the map images are stored. This function reads all the PNG images from this
+    folder to create a video animation
+    :param animation_folder: The `animation_folder` parameter in the `create_videos_from_maps` function
+    refers to the directory where the resulting animation video will be saved. This folder should be
+    specified as a string representing the path to the directory where you want to save the animation
+    video file
+    :param name: The `name` parameter in the `create_videos_from_maps` function is a string that
+    represents the name of the animation or video that will be created. It is used to generate the
+    output file name for the video
+    :param fps: The `fps` parameter in the `create_videos_from_maps` function stands for frames per
+    second. It determines how many frames (images) are displayed per second in the resulting video
+    animation. A higher FPS value will result in a smoother animation, while a lower FPS value will make
+    the animation appear more, defaults to 2 (optional)
+    """
     # Get the list of map images
     image_files = sorted([os.path.join(maps_folder, f) for f in os.listdir(maps_folder) if f.endswith(".png")])
     # Save animation as mp4
@@ -396,7 +659,6 @@ if __name__ == "__main__":
         # Check if the maps folder exists and is not empty
         if not folder_exists_and_not_empty(maps_folder):
             for file_name in os.listdir(data_folder):
-                print(f'creating animation for {name.capitalize()}...')
                 create_maps(maps_folder, data_folder, file_name, name, extent, cities)
         else:
             print(f"Map for {name.capitalize()} already exists and is not empty")
@@ -412,6 +674,7 @@ if __name__ == "__main__":
     
         # Check if the data folder exists and is not empty
         if not folder_exists_and_not_empty(animation_folder):
+            print(f'creating animation for {name.capitalize()}...')
             create_videos_from_maps(maps_folder, animation_folder, name, 2)
         else:
             print(f"Data for {name.capitalize()} already exists and is not empty")       
