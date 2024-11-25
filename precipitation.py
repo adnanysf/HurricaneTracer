@@ -82,20 +82,23 @@ hurricane_data ={
 
 def create_directories(name):
     """
-    The `create_directories` function dynamically creates directories for a 
-    hurricane and stores the paths in a dictionary.
-    
-    :param name: `name` parameter as input, which is the name
-    of a hurricane. The function then creates directories for various purposes related to that
-    hurricane, such as storing data, maps, graphs, text files, and animations. 
-    :return: a dictionary containing paths to various folders created for a hurricane. 
-    The keys in the dictionary are the name of the hurricane, and the
-    values are dictionaries containing paths to the following folders:
-    - 'data_folder': Path to the data folder for the hurricane
-    - 'maps_folder': Path to the maps folder for the hurricane
-    - 'graphs_folder': Path to graphs folder for the hurricane
-    - 'txt_folder': Path to txt folder for the hurricane containing the download links to the .nc files
-    - 'animation_folder': Path to animation folder for the hurricane
+    Create and organize a structured directory hierarchy for hurricane data analysis.
+
+    This function establishes a standardized folder structure for storing hurricane-related
+    data, including raw data, visualization outputs, and animation files. All directories
+    are created relative to a global BASE_DIR path.
+
+    Parameters
+    ----------
+    name : str
+        Name of the hurricane.
+        Will be capitalized in folder names for consistency.
+
+    Returns
+    -------
+    dict
+        Nested dictionary containing all created directory paths.
+
     """
     folders = {}
     # Create folders dynamically for each hurricane
@@ -133,12 +136,27 @@ def create_directories(name):
 
 def folder_exists_and_not_empty(folder_path):
     """
-    The function `folder_exists_and_not_empty` checks if a folder exists and is not empty.
-    
-    :param folder_path: The `folder_path` parameter is a string that represents the path to a folder on
-    the file system
-    :return: returns `True` if the folder at the specified path exists.
-    `folder_path` exists and is not empty. Otherwise, it returns `False`.
+    Verify if a specified folder exists and contains at least one file or subdirectory.
+
+    This function performs a two-step validation: first checking if the path exists,
+    then verifying that it contains at least one entry. It handles both files and
+    subdirectories in its emptiness check.
+
+    Parameters
+    ----------
+    folder_path : str or Path
+        Path to the folder to be checked.
+        Can be either absolute or relative path.
+
+    Returns
+    -------
+    bool
+        True if both conditions are met:
+            - Folder exists
+            - Folder contains at least one file or subdirectory
+        False if either:
+            - Folder doesn't exist
+            - Folder exists but is empty
     """
     # Check if the folder exists
     if os.path.exists(folder_path):
@@ -147,15 +165,29 @@ def folder_exists_and_not_empty(folder_path):
             return True
     return False
 
-def download_links(name, data_folder_full_path):
+def download_links(name, data_folder_full_path, txt_dir):
     """
-    The `download_links` function reads URLs from a text file, downloads corresponding NetCDF files, and
-    saves them in a specified directory.
-    
-    :param name: The `name` parameter in the `download_links` function is used to specify the name of
-    the .txt file that contains the list of URLs to download NetCDF files from
-    :param data_folder_full_path: The `data_folder_full_path` parameter should be the full path to the
-    directory where you want to save the downloaded files.
+    Download NetCDF files from URLs listed in a text file.
+
+    This function reads a text file containing URLs for NetCDF files, downloads each file,
+    and saves them to a specified directory. Each URL should point to a NetCDF file
+    and be listed on a separate line in the text file.
+
+    Parameters
+    ----------
+    name : str
+        Base name of the text file containing URLs (without .txt extension).
+        The file should be located in the directory specified by txt_dir.
+        Example: if name='ian', function looks for 'ian.txt'
+
+    data_folder_full_path : str or Path
+        Directory path where downloaded NetCDF files will be saved.
+        Must be an existing directory with write permissions.
+
+    Returns
+    -------
+    None
+        Prints confirmation message upon completion of downloads.
     """
     # Update this with the path to your .txt file
     txt_path = os.path.join(txt_dir, f"{name}.txt")
@@ -182,25 +214,41 @@ def download_links(name, data_folder_full_path):
 
 def create_maps(maps_folder_full_path, data_folder_full_path, file_name,name,extent,cities):
     """
-    The function `create_maps` generates a rainfall map 
-    visualization for a specific dataset, focusing on a specified geographical 
-    extent and marking cities on the map.
-    
-    :param maps_folder_full_path: The `maps_folder_full_path` parameter is the full path to the
-    directory where you want to save the generated rainfall maps.
-    :param data_folder_full_path: The `data_folder_full_path` parameter
-    represents the full path to the folder where the data files are located. 
-    :param file_name: The `file_name` parameter represents the name of the
-    file being processed. It is used to extract the date and time information from the file name to be
-    displayed on the generated map.
-    :param name: The `name` parameter represents the name of the hurricane
-    for which the rainfall map is being generated.
-    :param extent: The `extent` parameter is used to specify the
-    geographical extent of the map to be created. It defines the bounding box coordinates that determine
-    the area to be displayed on the map.
-    :param cities: The `cities` parameter is a dictionary where
-    the keys are city names and the values are tuples containing latitude and longitude coordinates of
-    those cities.
+    Generate detailed rainfall visualization maps for hurricane data with geographic features and city markers.
+
+    This function creates sophisticated rainfall maps using NetCDF data, incorporating geographic
+    boundaries, city markers, contour lines, and a logarithmic color scale. Each map represents
+    a specific time point during a hurricane event.
+
+    Parameters
+    ----------
+    maps_folder_full_path : str or Path
+        Directory path where generated map images will be saved.
+        Must be an existing directory with write permissions.
+
+    data_folder_full_path : str or Path
+        Directory path containing the NetCDF data files to be processed.
+        Files should be in .nc4 or .nc format.
+
+    file_name : str
+        Name of the NetCDF file to process.
+        Must follow format with embedded datetime (e.g., 'prefix.YYYYMMDDHHMM.suffix').
+
+    name : str
+        Name of the hurricane being visualized.
+        Used in map titles and output filenames.
+
+    extent : list or tuple
+        Geographic bounds for the map in format [lon_min, lon_max, lat_min, lat_max].
+        Determines the visible area of the visualization.
+
+    cities : dict
+        Dictionary of cities to mark on the map.
+
+    Returns
+    -------
+    None
+        Saves the generated map as a PNG file and closes all figure resources.
     """
     # Only process files with the .nc4 or .nc extension
     if file_name.endswith(".nc4") or file_name.endswith(".nc"):
@@ -315,24 +363,34 @@ def create_maps(maps_folder_full_path, data_folder_full_path, file_name,name,ext
 
 def gather_precipitation_data(cities, data_folder, name):
     """
-    The function `gather_precipitation_data` processes precipitation data from files in a specified
-    folder for given cities and updates the hurricane data dictionary with daily and total precipitation
-    values.
-    
-    :param cities: The `cities` parameter is a dictionary
-    where the keys are city names and the values are tuples containing the latitude and longitude
-    coordinates of each city. This dictionary is used to extract precipitation data for each city.
-    :param data_folder: The `data_folder` parameter is the
-    path to the folder where the precipitation data files are stored. This function reads precipitation
-    data from files in this folder to gather information for each city specified in the `cities`
-    dictionary.
-    :param name: The `name` parameter is a string that
-    represents the name of the hurricane event for which you are gathering precipitation data
-    :return: The function `gather_precipitation_data` returns two main values: 
-    1. `hurricane_data`: This is a dictionary containing precipitation data for each city. It includes
-    keys for daily precipitation and total precipitation for each city.
-    2. `days`: This is a list containing datetime objects representing the days for which precipitation
-    data was gathered.
+    Process and aggregate precipitation data from NetCDF files for multiple cities during a hurricane event.
+
+    This function reads precipitation data from NetCDF files, extracts values for specified city locations,
+    and aggregates both daily and total precipitation values. It processes temporal data series and
+    matches geographic coordinates to the nearest grid points in the dataset.
+
+    Parameters
+    ----------
+    cities : dict
+        Dictionary mapping city names to their coordinates.
+
+    data_folder : str or Path
+        Directory path containing the NetCDF precipitation data files.
+        Files should follow naming convention with embedded datetime
+        (e.g., 'prefix.YYYYMMDDHHMM.suffix').
+
+    name : str
+        Hurricane identifier used to organize data in the hurricane_data dictionary.
+        Must be a key that exists in hurricane_data.
+
+    Returns
+    -------
+    tuple
+        A tuple containing two elements:
+        - hurricane_data : dict
+            Updated dictionary with new precipitation data
+        - days : list
+            List of datetime objects corresponding to the precipitation measurements
     """
     # Add new keys to store precipitation data
     hurricane_data[name]["daily_precipitation"] = {city: [] for city in cities.keys()}
@@ -377,19 +435,33 @@ def gather_precipitation_data(cities, data_folder, name):
         
 def plot_time_series_for_cities(daily_precipitation, days, name, output_folder):
     """
-    The function `plot_time_series_for_cities` generates a time series plot of daily precipitation data
-    for multiple cities during a hurricane event and saves the plot as an image file.
-    
-    :param daily_precipitation: The `daily_precipitation` parameter is a dictionary where the keys are
-    city names and the values are lists of daily precipitation data for each city. Each list represents
-    the daily precipitation values for that city over a period of time.
-    :param days: The `days` parameter represents the
-    x-axis values for the time series plot. It could be a list of dates or numerical values representing
-    the days for which the daily precipitation data is available for different cities.
-    :param name: The `name` parameter represents the name
-    of the hurricane for which the total daily precipitation data is being plotted.
-    :param output_folder: The `output_folder` parameter
-    refers to the directory path where the generated plot will be saved as a PNG file.
+    Create a detailed time series plot of daily precipitation data for multiple cities during a hurricane event.
+
+    This function generates a sophisticated visualization that includes precipitation threshold bands,
+    city-specific trend lines, peak annotations, and automatically scaled axes. The precipitation data
+    is converted from kg/m² to inches for display.
+
+    Parameters
+    ----------
+    daily_precipitation : dict
+        Dictionary containing precipitation data.
+        Each city should have the same number of measurements corresponding to the days parameter.
+
+    days : list or array-like
+        List of datetime objects representing the dates for the precipitation measurements.
+        Must be the same length as each city's precipitation data list.
+
+    name : str
+        Name of the hurricane being analyzed. Used in plot title and output filename.
+
+    output_folder : str or Path
+        Directory path where the plot will be saved. Must be an existing directory
+        with write permissions.
+
+    Returns
+    -------
+    None
+        Saves the plot as a PNG file and closes the figure.
     """
     # Convert kg/m² to inches (1 kg/m² = 0.0393701 inches)
     conversion_factor = 0.0393701
@@ -518,21 +590,28 @@ def plot_time_series_for_cities(daily_precipitation, days, name, output_folder):
 
 def plot_total_precipitation(accumulated_precip, name, output_folder):
     """
-    The function `plot_total_precipitation` generates a bar plot showing the total accumulated
-    precipitation for each city affected by a hurricane and saves the plot as a PNG file in the
-    specified output folder.
-    
-    :param accumulated_precip: It seems like you were about to provide a description of the
-    `accumulated_precip` parameter in the `plot_total_precipitation` function. Could you please continue
-    with the description so that I can assist you further?
-    :param name: The `name` parameter in the `plot_total_precipitation` function is used to specify the
-    name of the hurricane for which you want to plot the total accumulated precipitation data. This name
-    is used to access the corresponding data from the `hurricane_data` dictionary and generate a plot
-    showing the
-    :param output_folder: The `output_folder` parameter in the `plot_total_precipitation` function is a
-    string that represents the directory path where the output plot will be saved. This parameter
-    specifies the location where the generated plot image file will be stored after the function is
-    executed. It should be a valid path on the
+    Generate and save a bar plot visualizing the total accumulated precipitation by city for a specified hurricane.
+
+    This function creates a bar chart showing total precipitation amounts for each affected city,
+    converting the values from kg/m² to inches. The plot includes value labels, a grid, and
+    is automatically scaled to accommodate the data range.
+
+    Parameters
+    ----------
+    accumulated_precip : dict
+        Dictionary containing city-wise precipitation data with structure:
+
+    name : str
+        Name of the hurricane being analyzed. Used in plot title and output filename.
+
+    output_folder : str or Path
+        Directory path where the plot will be saved. Must be an existing directory
+        with write permissions.
+
+    Returns
+    -------
+    str
+        Path to the saved plot file.
     """
     # Access the total precipitation
     total_precipitation = hurricane_data[name]["total_precipitation"]
@@ -595,23 +674,36 @@ def plot_total_precipitation(accumulated_precip, name, output_folder):
 
 def create_videos_from_maps(maps_folder, animation_folder, name, fps=2):
     """
-    The function `create_videos_from_maps` generates a video animation from a series of map images and
-    saves it as an mp4 file.
-    
-    :param maps_folder: The `maps_folder` parameter in the `create_videos_from_maps` function is the
-    directory path where the map images are stored. This function reads all the PNG images from this
-    folder to create a video animation
-    :param animation_folder: The `animation_folder` parameter in the `create_videos_from_maps` function
-    refers to the directory where the resulting animation video will be saved. This folder should be
-    specified as a string representing the path to the directory where you want to save the animation
-    video file
-    :param name: The `name` parameter in the `create_videos_from_maps` function is a string that
-    represents the name of the animation or video that will be created. It is used to generate the
-    output file name for the video
-    :param fps: The `fps` parameter in the `create_videos_from_maps` function stands for frames per
-    second. It determines how many frames (images) are displayed per second in the resulting video
-    animation. A higher FPS value will result in a smoother animation, while a lower FPS value will make
-    the animation appear more, defaults to 2 (optional)
+    Create an MP4 video animation from a sequence of map images.
+
+    This function reads PNG images from a specified folder, resizes them to a standard size (3008x3008),
+    and combines them into a video animation. The resulting video is saved as an MP4 file with the
+    specified frames per second.
+
+    Parameters
+    ----------
+    maps_folder : str or Path
+        Directory path containing the map images (PNG format) to be animated.
+        Images will be processed in alphabetical order.
+
+    animation_folder : str or Path
+        Directory path where the output MP4 video will be saved.
+        Must be an existing directory with write permissions.
+
+    name : str
+        Base name for the output video file. Will be capitalized and appended with '_animation.mp4'.
+        Example: if name='ian', output will be 'Ian_animation.mp4'
+
+    fps : int, optional
+        Frames per second for the output video animation (default=2).
+        Controls the playback speed of the animation:
+        - Higher values create faster, smoother animations
+        - Lower values create slower animations with more visible transitions
+
+    Returns
+    -------
+    None
+        Prints confirmation message with output file path upon completion.
     """
     # Get the list of map images
     image_files = sorted([os.path.join(maps_folder, f) for f in os.listdir(maps_folder) if f.endswith(".png")])
@@ -649,7 +741,7 @@ if __name__ == "__main__":
         
         # Check if the data folder exists and is not empty
         if not folder_exists_and_not_empty(data_folder):
-            download_links(name, data_folder)
+            download_links(name, data_folder,txt_folder)
         else:
             print(f"Data for {name.capitalize()} already exists and is not empty")
             
