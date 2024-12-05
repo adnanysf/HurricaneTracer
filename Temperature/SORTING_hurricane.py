@@ -35,7 +35,7 @@ hurricane_df = hurricane_df.dropna(subset=['Date'])
 hurricane_df = hurricane_df.drop_duplicates(subset=['Date']).sort_values(by='Date').reset_index(drop=True)
 
 # Save the cleaned data
-output_path = '/Users/aubreyanderson/Desktop/geog392/PROJECT/filtered_hurricane_data.csv'
+output_path = '/Users/aubreyanderson/Desktop/geog392/PROJECT/HurricaneTracer/Temperature/filtered_hurricane_data.csv'
 hurricane_df.to_csv(output_path, index=False)
 
 print(f"Hurricane data sorted and cleaned. Saved to '{output_path}'.")

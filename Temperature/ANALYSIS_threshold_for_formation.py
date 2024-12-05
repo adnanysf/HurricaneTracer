@@ -36,6 +36,6 @@ plt.tight_layout()
 plt.show()
 
 # Optionally, save the results to a CSV file
-hurricane_counts_by_sst.to_csv('/Users/aubreyanderson/Desktop/geog392/PROJECT/ANALYSIS_threshold_for_formation.csv', header=True)
+hurricane_counts_by_sst.to_csv('/Users/aubreyanderson/Desktop/geog392/PROJECT/HurricaneTracer/Temperature/ANALYSIS_threshold_for_formation.csv', header=True)
 
 print("SST categories and hurricane frequencies analysis complete.")

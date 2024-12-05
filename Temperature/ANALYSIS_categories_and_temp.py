@@ -50,7 +50,7 @@ else:
 
 
 # Load the results CSV file
-result = pd.read_csv('/Users/aubreyanderson/Desktop/geog392/PROJECT/hurricane_category_temperature_analysis.csv')
+result = pd.read_csv('/Users/aubreyanderson/Desktop/geog392/PROJECT/HurricaneTracer/Temperature/hurricane_category_temperature_analysis.csv')
 
 # Set seaborn style for better plots
 sns.set(style="whitegrid")
